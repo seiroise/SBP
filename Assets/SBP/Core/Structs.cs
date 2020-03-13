@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
+using System;
 
 namespace SBP
 {
-    public struct Node
+	[Serializable]
+    public class Node
     {
         public Vector2 position;
         public Vector2 prevPosition;
@@ -14,8 +16,13 @@ namespace SBP
         public float invMass { get { return _invMass; } }
 
         public float damping;
-        public bool isEnabled;
-        public bool isStatic;
+        public bool isEnabled = true;
+        public bool isStatic = false;
+
+		public Node(Vector2 position, float mass, float damping)
+		{
+			SetParameters(position, mass, damping);
+		}
 
         public void SetParameters(Vector2 position, float mass, float damping)
         {
@@ -34,24 +41,30 @@ namespace SBP
         }
     }
 
-    public struct Edge
+	[Serializable]
+	public class Edge
     {
-        public int a;
-        public int b;
+        public Node a;
+        public Node b;
         public float restLength;
-        public float stiffness;
-        public bool isEnabled;
+		// public float stiffness;
+        public bool isEnabled = true;
 
-        public void SetParameters(int a, int b, float restLength, float stiffness)
+		public Edge(Node a, Node b)
+		{
+			SetParameters(a, b);
+		}
+
+        public void SetParameters(Node a, Node b)
         {
             this.a = a;
             this.b = b;
-            this.restLength = restLength;
-            this.stiffness = stiffness;
+			this.restLength = Vector2.Distance(a.position, b.position);
         }
     }
 
-    public struct AABB
+	[Serializable]
+	public struct AABB
     {
         private Vector2 _min;
         private Vector2 _max;
@@ -64,6 +77,10 @@ namespace SBP
         {
             get { return _max; }
         }
+		public Vector2 center
+		{
+			get { return (min + max) * 0.5f; }
+		}
 
         public AABB(Vector2 min, Vector2 max)
         {
@@ -98,5 +115,10 @@ namespace SBP
                 _max.y = p.y;
             }
         }
+
+		public void ShrinkZero()
+		{
+			_min = _max = Vector2.zero;
+		}
     }
 }
