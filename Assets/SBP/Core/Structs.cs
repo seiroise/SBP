@@ -3,7 +3,7 @@ using System;
 
 namespace SBP
 {
-	[Serializable]
+    [Serializable]
     public class Node
     {
         public Vector2 position;
@@ -19,10 +19,10 @@ namespace SBP
         public bool isEnabled = true;
         public bool isStatic = false;
 
-		public Node(Vector2 position, float mass, float damping)
-		{
-			SetParameters(position, mass, damping);
-		}
+        public Node(Vector2 position, float mass, float damping)
+        {
+            SetParameters(position, mass, damping);
+        }
 
         public void SetParameters(Vector2 position, float mass, float damping)
         {
@@ -39,32 +39,65 @@ namespace SBP
             this._mass = Mathf.Max(mass, 1e-3f);
             this._invMass = 1f / mass;
         }
+
+        /// <summary>
+        /// 前回のフレームからの速度(m/frame)を返す。
+        /// </summary>
+        /// <returns></returns>
+        public Vector2 GetFrameVelocity()
+        {
+            return (position - prevPosition);
+        }
+
+        /// <summary>
+        /// 前回のフレームからの移動距離から単位時間あたりの速度を返す。
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <returns></returns>
+        public Vector2 GetSecondVelocity(float dt)
+        {
+            return (position - prevPosition) / dt;
+        }
+
+        /// <summary>
+        /// なんというかポジションベースの物理特有って感じ。
+        /// </summary>
+        /// <param name="force"></param>
+        public void ApplyForce(Vector2 force)
+        {
+            prevPosition -= force;
+        }
     }
 
-	[Serializable]
-	public class Edge
+    [Serializable]
+    public class Edge
     {
         public Node a;
         public Node b;
         public float restLength;
-		// public float stiffness;
+        // public float stiffness;
         public bool isEnabled = true;
 
-		public Edge(Node a, Node b)
-		{
-			SetParameters(a, b);
-		}
+        public Edge(Node a, Node b)
+        {
+            SetParameters(a, b);
+        }
 
         public void SetParameters(Node a, Node b)
         {
             this.a = a;
             this.b = b;
-			this.restLength = Vector2.Distance(a.position, b.position);
+            this.restLength = Vector2.Distance(a.position, b.position);
+        }
+
+        public float GetInvMass()
+        {
+            return 1f / (a.mass + b.mass);
         }
     }
 
-	[Serializable]
-	public struct AABB
+    [Serializable]
+    public struct AABB
     {
         private Vector2 _min;
         private Vector2 _max;
@@ -77,10 +110,10 @@ namespace SBP
         {
             get { return _max; }
         }
-		public Vector2 center
-		{
-			get { return (min + max) * 0.5f; }
-		}
+        public Vector2 center
+        {
+            get { return (min + max) * 0.5f; }
+        }
 
         public AABB(Vector2 min, Vector2 max)
         {
@@ -116,9 +149,9 @@ namespace SBP
             }
         }
 
-		public void ShrinkZero()
-		{
-			_min = _max = Vector2.zero;
-		}
+        public void ShrinkZero()
+        {
+            _min = _max = Vector2.zero;
+        }
     }
 }

@@ -4,17 +4,22 @@ using System.Collections.Generic;
 
 namespace SBP
 {
-	/// <summary>
-	/// 複数のNodeで構成された凸包
-	/// </summary>
-	[Serializable]
-	public class Convex
+    /// <summary>
+    /// 複数のNodeで構成された凸包
+    /// </summary>
+    [Serializable]
+    public class Convex
     {
 
         /// <summary>
         /// 凸包の衝突判定を構成するノードのリスト
         /// </summary>
 		public List<Node> collisionNodes;
+
+        /// <summary>
+        /// コリジョン判定以外のノードのリスト
+        /// </summary>
+        public List<Node> helperNodes;
 
         /// <summary>
         /// 凸包を完全に包含する矩形領域
@@ -26,36 +31,31 @@ namespace SBP
         /// </summary>
         public bool isStatic = false;
 
-        /// <summary>
-        /// 静的な場合、ノードの座標はこの値で上書きされる。
-        /// </summary>
-        // public List<Vector2> nodePositions;
+        public Convex()
+        {
+            collisionNodes = new List<Node>();
+            helperNodes = new List<Node>();
+        }
 
-		public Convex()
-		{
-			collisionNodes = new List<Node>();
-		}
+        public void AddCollisionNode(Node n)
+        {
+            collisionNodes.Add(n);
+        }
 
-		public void SetNodes(List<Node> nodes)
-		{
-			this.collisionNodes = nodes;
-			RecalculateBounds();
-		}
+        public void AddHelperNode(Node n)
+        {
+            helperNodes.Add(n);
+        }
 
-		public void AddNode(Node n)
-		{
-			collisionNodes.Add(n);
-		}
+        public void RecalculateBounds()
+        {
+            for (int i = 0; i < collisionNodes.Count; ++i)
+            {
+                aabb.Encapsulate(collisionNodes[i].position);
+            }
+        }
 
-		public void RecalculateBounds()
-		{
-			for (int i = 0; i < collisionNodes.Count; ++i)
-			{
-				aabb.Encapsulate(collisionNodes[i].position);
-			}
-		}
-
-		/*
+        /*
         public void SetNodes(List<int> nodes)
         {
             this.indices = nodes;
@@ -77,5 +77,5 @@ namespace SBP
             // }
         }
 		*/
-	}
+    }
 }
