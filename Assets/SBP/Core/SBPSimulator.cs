@@ -47,6 +47,8 @@ namespace SBP
         private List<Edge> _edges;
         private List<Convex> _convexes;
 
+        // 衝突情報を保持しておくため
+        private int _collisionInfoIndex = 0;
         private List<CollisionInfo> _collisionInfoList;
 
         // SATの結果を保持する構造体。２つあれば事足りるので保持しておく。
@@ -82,11 +84,10 @@ namespace SBP
             }
 
             // 凸包の衝突判定
-            SortConvexesForSweepAndPrune();
+            SortConvexesForSweepAndPrune();	// 本当はこれも反復中にやったほうがいいんだろうけどね...
             for (int i = 0; i < collisionCheckIterations; ++i)
             {
-                _collisionInfoList.Clear();
-                CheckBroadPhaseCollision();
+                ProcessCollision();
             }
 
             // シミュレーション範囲の制限
@@ -115,41 +116,28 @@ namespace SBP
             return e;
         }
 
-        public Convex AddConvex(Convex c)
+        public Convex AddConvex(Convex c, bool addNodes, bool addEdges)
         {
             _convexes.Add(c);
+            if (addNodes)
+            {
+                for (int i = 0; i < c.collisionNodes.Count; ++i)
+                {
+                    AddNode(c.collisionNodes[i]);
+                }
+                for (int i = 0; i < c.helperNodes.Count; ++i)
+                {
+                    AddNode(c.helperNodes[i]);
+                }
+            }
+            if (addEdges)
+            {
+                for (int i = 0; i < c.edges.Count; ++i)
+                {
+                    AddEdge(c.edges[i]);
+                }
+            }
             return c;
-        }
-
-        public Convex AddTriangle(Vector2 center, float size)
-        {
-            size = Mathf.Max(1e-3f, size);
-            Vector2 ap = center + size * Utilities.GetAngledVector(90f * Mathf.Deg2Rad);
-            Vector2 bp = center + size * Utilities.GetAngledVector(210f * Mathf.Deg2Rad);
-            Vector2 cp = center + size * Utilities.GetAngledVector(-30f * Mathf.Deg2Rad);
-
-            Node a = AddNode(new Node(ap, 1f, 0f));
-            Node b = AddNode(new Node(bp, 1f, 0f));
-            Node c = AddNode(new Node(cp, 1f, 0f));
-            Node x = AddNode(new Node(center, 1f, 0f));
-
-            Edge ab = AddEdge(new Edge(a, b));
-            Edge bc = AddEdge(new Edge(b, c));
-            Edge ca = AddEdge(new Edge(c, a));
-
-            Edge xa = AddEdge(new Edge(x, a));
-            Edge xb = AddEdge(new Edge(x, b));
-            Edge xc = AddEdge(new Edge(x, c));
-
-            Convex triangle = new Convex();
-            triangle.AddCollisionNode(a);
-            triangle.AddCollisionNode(b);
-            triangle.AddCollisionNode(c);
-            triangle.RecalculateBounds();
-
-            triangle.AddHelperNode(x);
-
-            return AddConvex(triangle);
         }
 
         #endregion
@@ -272,9 +260,96 @@ namespace SBP
             }
         }
 
+        /// <summary>
+        /// 衝突情報を格納するためのオブジェクトを取得する。
+        /// </summary>
+        private CollisionInfo GetCollisionInfo()
+        {
+            CollisionInfo infoObject = null;
+            if (_collisionInfoIndex < _collisionInfoList.Count)
+            {
+                infoObject = _collisionInfoList[_collisionInfoIndex];
+                infoObject.Reset();
+            }
+            else
+            {
+                infoObject = new CollisionInfo();
+                _collisionInfoList.Add(infoObject);
+            }
+            _collisionInfoIndex++;
+            return infoObject;
+        }
+
+        /// <summary>
+        /// 衝突情報を格納するためのオブジェクト番号のリセット
+        /// </summary>
+        private void ResetCollisionInfoIndex()
+        {
+            _collisionInfoIndex = 0;
+        }
+
+        /// <summary>
+        /// 軸(axis)に凸包(convex)を射影したときの、最小値(min)と最大値(max)を求める。
+        /// </summary>
+        /// <param name="convex"></param>
+        /// <param name="axis"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        void ProjectConvexToAxis(Convex convex, Vector2 axis, out float min, out float max)
+        {
+            Node n = convex.collisionNodes[0];
+            min = max = Vector2.Dot(axis, n.position);
+
+            for (int i = 1; i < convex.collisionNodes.Count; ++i)
+            {
+                n = convex.collisionNodes[i];
+                float t = Vector2.Dot(axis, n.position);
+                if (t < min)
+                {
+                    min = t;
+                }
+                else if (t > max)
+                {
+                    max = t;
+                }
+            }
+        }
+
+        /// <summary>
+        /// ２つの範囲の共通部分の量を測る。(符号付き)
+        /// </summary>
+        /// <param name="aMin"></param>
+        /// <param name="aMax"></param>
+        /// <param name="bMin"></param>
+        /// <param name="bMax"></param>
+        /// <param name="signedAmount"></param>
+        void MeasureOverlappedSignedAmount(float aMin, float aMax, float bMin, float bMax, out float signedAmount)
+        {
+            if (aMin < bMin)
+            {
+                signedAmount = aMax - bMin;
+                // center = (bMin + aMax) * 0.5f;
+            }
+            else
+            {
+                signedAmount = bMax - aMin;
+                // center = (aMin + bMax) * 0.5f;
+            }
+        }
+
         #endregion
 
         #region Broad phase Collision detection
+
+        /// <summary>
+        /// 衝突処理
+        /// </summary>
+        void ProcessCollision()
+        {
+            ResetCollisionInfoIndex();
+            CheckBroadPhaseCollision();
+            // ProcessCollisionInfoList();
+        }
 
         /// <summary>
         /// 衝突判定を行うための事前処理
@@ -298,7 +373,7 @@ namespace SBP
 
         /// <summary>
         /// 凸包同士の衝突判定のブロードフェイズ
-		/// x軸に従ってソートされているはずなのでその特定を活かす。	
+        /// x軸に従ってソートされているはずなのでその特定を活かす。	
         /// </summary>
         void CheckBroadPhaseCollision()
         {
@@ -322,6 +397,7 @@ namespace SBP
 
         #endregion
 
+#if false
         #region Narrow phase collision detection 1
 
         /// <summary>
@@ -341,7 +417,7 @@ namespace SBP
                 return;
             }
 
-            CollisionInfo info = new CollisionInfo();
+            CollisionInfo info = GetCollisionInfo();
             if (CollideConvexes(a, b, ref info) && CollideConvexes(b, a, ref info))
             {
                 CollisionResponse(info);
@@ -448,56 +524,8 @@ namespace SBP
             return true;
         }
 
-        /// <summary>
-        /// 軸(axis)に凸包(convex)を射影したときの、最小値(min)と最大値(max)を求める。
-        /// </summary>
-        /// <param name="convex"></param>
-        /// <param name="axis"></param>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        void ProjectConvexToAxis(Convex convex, Vector2 axis, out float min, out float max)
-        {
-            Node n = convex.collisionNodes[0];
-            min = max = Vector2.Dot(axis, n.position);
-
-            for (int i = 1; i < convex.collisionNodes.Count; ++i)
-            {
-                n = convex.collisionNodes[i];
-                float t = Vector2.Dot(axis, n.position);
-                if (t < min)
-                {
-                    min = t;
-                }
-                else if (t > max)
-                {
-                    max = t;
-                }
-            }
-        }
-
-        /// <summary>
-        /// ２つの範囲の共通部分の量を測る。(符号付き)
-        /// </summary>
-        /// <param name="aMin"></param>
-        /// <param name="aMax"></param>
-        /// <param name="bMin"></param>
-        /// <param name="bMax"></param>
-        /// <param name="signedAmount"></param>
-        void MeasureOverlappedSignedAmount(float aMin, float aMax, float bMin, float bMax, out float signedAmount)
-        {
-            if (aMin < bMin)
-            {
-                signedAmount = aMax - bMin;
-                // center = (bMin + aMax) * 0.5f;
-            }
-            else
-            {
-                signedAmount = bMax - aMin;
-                // center = (aMin + bMax) * 0.5f;
-            }
-        }
-
         #endregion
+#endif
 
         #region Narrow phase collision detection 2
 
@@ -523,11 +551,12 @@ namespace SBP
             if (CheckCollisionWithSAT(a, b, ref satResultAB) && CheckCollisionWithSAT(b, a, ref satResultBA))
             {
                 // ２つの凸包間でそれぞれ分離軸が定義できないので、２つの凸包は衝突している。
-                CollisionInfo info = new CollisionInfo();
+                CollisionInfo info = GetCollisionInfo();
 
                 if (satResultAB.penetration < satResultBA.penetration)
                 {
-                    FindShallowestPenetratedNode(b, ref satResultAB);
+                    // FindShallowestPenetratedNode(b, ref satResultAB);
+                    FindDeepestPenetratedNode(b, ref satResultAB);
                     info.convexA = a;
                     info.convexB = b;
                     info.edgeNodeA = satResultAB.edgeNodeA;
@@ -538,7 +567,8 @@ namespace SBP
                 }
                 else
                 {
-                    FindShallowestPenetratedNode(a, ref satResultBA);
+                    // FindShallowestPenetratedNode(a, ref satResultBA);
+                    FindDeepestPenetratedNode(a, ref satResultBA);
                     info.convexA = b;
                     info.convexB = a;
                     info.edgeNodeA = satResultBA.edgeNodeA;
@@ -547,9 +577,8 @@ namespace SBP
                     info.depth = satResultBA.penetration;
                     info.axis = satResultBA.axis;
                 }
-
-                CollisionResponse(info);
                 _collisionInfoList.Add(info);
+                CollisionResponse(info);
             }
         }
 
@@ -563,6 +592,8 @@ namespace SBP
         {
             // ２つの凸包を分離する分離線が存在する場合、それは２つの凸包のいずれかの辺に平行である。
             // これが凸包同士の分離軸定理なので、これをもとに衝突判定を行い、それを解決するための情報を集める。
+            // そのためにまずは最も重なりの少ない分離軸を探索する。
+            // その後、その分離軸に対して最も深くめり込んでいる頂点を処理する。
 
             result.penetration = LARGE;
             result.edgeNodeA = null;
@@ -576,7 +607,7 @@ namespace SBP
                 Vector2 pa = edgeNodeA.position;
                 Vector2 pb = edgeNodeB.position;
 
-                Vector2 axis = new Vector2(pa.y - pb.y, pb.x - pa.x).normalized;
+                Vector2 axis = new Vector2(pb.y - pa.y, pa.x - pb.x).normalized;
 
                 float aMin, aMax, bMin, bMax, signedAmount;
                 ProjectConvexToAxis(a, axis, out aMin, out aMax);
@@ -627,9 +658,48 @@ namespace SBP
             result.penetratedNode = bestNode;
         }
 
+        /// <summary>
+        /// 最も深くめり込んでいるノードを返す。
+        /// </summary>
+        /// <param name="convex"></param>
+        /// <param name="result"></param>
+        void FindDeepestPenetratedNode(Convex convex, ref SATResult result)
+        {
+            Vector2 pa = result.edgeNodeA.position;
+            Vector2 pb = result.edgeNodeB.position;
+            Vector2 mid = (pa + pb) * 0.5f;
+
+            float minDistance = LARGE;
+            Node bestNode = null;
+
+            for (int i = 0; i < convex.collisionNodes.Count; ++i)
+            {
+                // 軸方向に射影した場合に、最も小さいものが一番めり込んでいる。
+                Node n = convex.collisionNodes[i];
+                float distance = Vector2.Dot(n.position - mid, result.axis);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestNode = n;
+                }
+            }
+            result.penetratedNode = bestNode;
+        }
+
         #endregion
 
         #region Collision Responce
+
+        /// <summary>
+        /// 検出された衝突情報への処理。
+        /// </summary>
+        void ProcessCollisionInfoList()
+        {
+            for (int i = 0; i < _collisionInfoIndex; ++i)
+            {
+                CollisionResponse(_collisionInfoList[i]);
+            }
+        }
 
         /// <summary>
         /// 衝突情報をもとにそれに対する反応を処理する。
@@ -669,11 +739,11 @@ namespace SBP
             info.pn = info.penetratedNode.position - (collisionVector * info.penetratedNode.invMass);
 
             // エッジの移動
-            info.edgeNodeA.position += collisionVector * ((1f - t) * lambda * invMassEdge);
-            info.edgeNodeB.position += collisionVector * (t * lambda * invMassEdge);
+            info.edgeNodeA.position -= collisionVector * ((1f - t) * lambda * invMassEdge);
+            info.edgeNodeB.position -= collisionVector * (t * lambda * invMassEdge);
 
             // 衝突点の移動
-            info.penetratedNode.position -= collisionVector * info.penetratedNode.invMass;
+            info.penetratedNode.position += collisionVector * info.penetratedNode.invMass;
 
             // 摩擦の適用
             ApplyFriction(info);
@@ -750,12 +820,12 @@ namespace SBP
 					Gizmos.color = nodeColor;
 					DrawNodesOnGizmos();
 				}
-				if(drawNormalsOnGizmos)
+				if (drawNormalsOnGizmos)
 				{
 					Gizmos.color = normalColor;
 					DrawConvexNormalsOnGizmos();
 				}
-				if(drawCollisionInfo)
+				if (drawCollisionInfo)
 				{
 					DrawCollisionInfoList();
 				}
@@ -780,10 +850,10 @@ namespace SBP
 
 		private void DrawConvexNormalsOnGizmos()
 		{
-			for(int k = 0; k < _convexes.Count; ++k)
+			for (int k = 0; k < _convexes.Count; ++k)
 			{
 				Convex c = _convexes[k];
-				for(int i = 0, j = c.collisionNodes.Count - 1; i < c.collisionNodes.Count; j = i++)
+				for (int i = 0, j = c.collisionNodes.Count - 1; i < c.collisionNodes.Count; j = i++)
 				{
 					Node a = c.collisionNodes[j];
 					Node b = c.collisionNodes[i];
@@ -796,7 +866,7 @@ namespace SBP
 
 		private void DrawCollisionInfoList()
 		{
-			for(int i = 0; i < _collisionInfoList.Count; ++i)
+			for (int i = 0; i < _collisionInfoIndex; ++i)
 			{
 				DrawCollisionInfo(_collisionInfoList[i]);
 			}
@@ -804,7 +874,7 @@ namespace SBP
 
 		private void DrawCollisionInfo(CollisionInfo info)
 		{
-			if(info == null)
+			if (info == null)
 			{
 				return;
 			}
@@ -822,6 +892,10 @@ namespace SBP
 			Gizmos.color = Color.cyan;
 			Vector2 mid = (info.edgeNodeA.position + info.edgeNodeB.position) * 0.5f;
 			Gizmos.DrawLine(mid, mid + info.axis);
+
+			Gizmos.DrawLine(info.edgeNodeA.position, info.edgeNodeA.prevPosition);
+			Gizmos.DrawLine(info.edgeNodeB.position, info.edgeNodeB.prevPosition);
+			Gizmos.DrawLine(info.penetratedNode.position, info.penetratedNode.prevPosition);
 		}
 
 #endif

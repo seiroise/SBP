@@ -50,6 +50,16 @@ namespace SBP
         }
 
         /// <summary>
+        /// 指定した角度(degree)を向いた単位ベクトルを返す
+        /// </summary>
+        /// <param name="degree"></param>
+        /// <returns></returns>
+        public static Vector2 GetAngledVectorWithDegree(float degree)
+        {
+            return GetAngledVector(degree * Mathf.Deg2Rad);
+        }
+
+        /// <summary>
         /// 指定したベクトルを任意の角度(radian)だけ回転させる。
         /// </summary>
         /// <param name="v"></param>

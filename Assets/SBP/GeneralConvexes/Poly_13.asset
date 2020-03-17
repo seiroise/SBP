@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00547cb66c7f540e8ac8dacc9e65997d, type: 3}
+  m_Name: Poly_13
+  m_EditorClassIdentifier: 
+  nodes:
+  - position: {x: 1, y: 0}
+    mass: 1
+    damping: 0
+  - position: {x: 0.885456, y: 0.4647232}
+    mass: 1
+    damping: 0
+  - position: {x: 0.5680647, y: 0.82298386}
+    mass: 1
+    damping: 0
+  - position: {x: 0.120536566, y: 0.99270886}
+    mass: 1
+    damping: 0
+  - position: {x: -0.35460496, y: 0.9350162}
+    mass: 1
+    damping: 0
+  - position: {x: -0.7485108, y: 0.66312265}
+    mass: 1
+    damping: 0
+  - position: {x: -0.9709419, y: 0.23931545}
+    mass: 1
+    damping: 0
+  - position: {x: -0.9709418, y: -0.23931584}
+    mass: 1
+    damping: 0
+  - position: {x: -0.74851066, y: -0.6631228}
+    mass: 1
+    damping: 0
+  - position: {x: -0.35460502, y: -0.9350162}
+    mass: 1
+    damping: 0
+  - position: {x: 0.120536745, y: -0.99270886}
+    mass: 1
+    damping: 0
+  - position: {x: 0.5680646, y: -0.822984}
+    mass: 1
+    damping: 0
+  - position: {x: 0.88545626, y: -0.46472278}
+    mass: 1
+    damping: 0
+  - position: {x: 0, y: 0}
+    mass: 1
+    damping: 0
+  edges:
+  - aIdx: 0
+    bIdx: 12
+  - aIdx: 0
+    bIdx: 13
+  - aIdx: 1
+    bIdx: 0
+  - aIdx: 1
+    bIdx: 13
+  - aIdx: 2
+    bIdx: 1
+  - aIdx: 2
+    bIdx: 13
+  - aIdx: 3
+    bIdx: 2
+  - aIdx: 3
+    bIdx: 13
+  - aIdx: 4
+    bIdx: 3
+  - aIdx: 4
+    bIdx: 13
+  - aIdx: 5
+    bIdx: 4
+  - aIdx: 5
+    bIdx: 13
+  - aIdx: 6
+    bIdx: 5
+  - aIdx: 6
+    bIdx: 13
+  - aIdx: 7
+    bIdx: 6
+  - aIdx: 7
+    bIdx: 13
+  - aIdx: 8
+    bIdx: 7
+  - aIdx: 8
+    bIdx: 13
+  - aIdx: 9
+    bIdx: 8
+  - aIdx: 9
+    bIdx: 13
+  - aIdx: 10
+    bIdx: 9
+  - aIdx: 10
+    bIdx: 13
+  - aIdx: 11
+    bIdx: 10
+  - aIdx: 11
+    bIdx: 13
+  - aIdx: 12
+    bIdx: 11
+  - aIdx: 12
+    bIdx: 13
+  helperNodeOffset: 13

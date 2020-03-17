@@ -14,12 +14,17 @@ namespace SBP
         /// <summary>
         /// 凸包の衝突判定を構成するノードのリスト
         /// </summary>
-		public List<Node> collisionNodes;
+        public List<Node> collisionNodes;
 
         /// <summary>
         /// コリジョン判定以外のノードのリスト
         /// </summary>
         public List<Node> helperNodes;
+
+        /// <summary>
+        /// エッジ
+        /// </summary>
+        public List<Edge> edges;
 
         /// <summary>
         /// 凸包を完全に包含する矩形領域
@@ -55,27 +60,55 @@ namespace SBP
             }
         }
 
-        /*
-        public void SetNodes(List<int> nodes)
+        public static Convex LoadFromConvexData(SBPConvexData data, Vector2 translation, float rotation, Vector2 scale)
         {
-            this.indices = nodes;
-            RecalculateBounds();
-        }
-
-        public void SetStatic(bool isStatic)
-        {
-            this.isStatic = isStatic;
-            if (!isStatic)
+            if (data == null)
             {
-                return;
+                return null;
             }
 
-            // nodePositions = new List<Vector2>();
-            // for (int i = 0; i < nodes.Count; ++i)
-            // {
-            //     nodePositions.Add(nodes[i].position);
-            // }
+            // ノードを作成
+            List<Node> nodes = new List<Node>();
+            for (int i = 0; i < data.nodes.Length; ++i)
+            {
+                SBPNodeData nodeData = data.nodes[i];
+                Vector2 position = nodeData.position;
+                position *= scale;
+                position = Utilities.RotateVector(position, rotation);
+                position += translation;
+
+                Node n = new Node(position, nodeData.mass, nodeData.damping);
+                nodes.Add(n);
+            }
+
+            // エッジを作成
+            List<Edge> edges = new List<Edge>();
+            for (int i = 0; i < data.edges.Length; ++i)
+            {
+                SBPEdgeData edgeData = data.edges[i];
+                Edge e = new Edge(nodes[edgeData.aIdx], nodes[edgeData.bIdx]);
+                edges.Add(e);
+            }
+
+            // 凸包を作成
+            Convex convex = new Convex();
+            int offset = data.helperNodeOffset;
+
+            for (int i = 0; i < nodes.Count; ++i)
+            {
+                if (i < offset)
+                {
+                    convex.AddCollisionNode(nodes[i]);
+                }
+                else
+                {
+                    convex.AddHelperNode(nodes[i]);
+                }
+            }
+
+            convex.edges = edges;
+            convex.RecalculateBounds();
+            return convex;
         }
-		*/
     }
 }

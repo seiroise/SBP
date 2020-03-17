@@ -6,6 +6,8 @@ namespace SBP
     {
         public SBPSimulator simulator;
 
+        public SBPConvexData convexData;
+
         public float size = 1f;
         public bool syncPosition = false;
 
@@ -13,9 +15,11 @@ namespace SBP
 
         private void Start()
         {
-            if (simulator)
+            if (simulator && convexData)
             {
-                _mine = simulator.AddTriangle(transform.position, size);
+                Convex convex = Convex.LoadFromConvexData(convexData, transform.position, transform.eulerAngles.z * Mathf.Deg2Rad, transform.localScale);
+                _mine = simulator.AddConvex(convex, true, true);
+                // _mine = simulator.AddTriangle(transform.position, size);
             }
         }
 
@@ -27,6 +31,18 @@ namespace SBP
             }
         }
 
+        private void OnDrawGizmos()
+        {
+            if (Application.isPlaying)
+            {
+                return;
+            }
+
+            if (convexData)
+            {
+                ConvexUtilities.PreviewConvexOnGizmos(convexData, transform.position, transform.eulerAngles.z * Mathf.Deg2Rad, transform.localScale, Color.green, Color.cyan);
+            }
+        }
 
     }
 }

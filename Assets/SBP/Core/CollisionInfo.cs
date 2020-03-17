@@ -2,6 +2,9 @@
 
 namespace SBP
 {
+    /// <summary>
+    /// コリジョンについての情報
+    /// </summary>
     public class CollisionInfo
     {
         /// <summary>
@@ -42,5 +45,15 @@ namespace SBP
         public Vector2 pa;
         public Vector2 pb;
         public Vector2 pn;
+
+        public void Reset()
+        {
+            convexA = null;
+            convexB = null;
+            edgeNodeA = null;
+            edgeNodeB = null;
+            penetratedNode = null;
+            depth = 1e+8f;
+        }
     }
 }

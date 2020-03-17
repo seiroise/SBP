@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00547cb66c7f540e8ac8dacc9e65997d, type: 3}
+  m_Name: Pentagon
+  m_EditorClassIdentifier: 
+  nodes:
+  - position: {x: 1, y: 0}
+    mass: 1
+    damping: 0
+  - position: {x: 0.30901697, y: 0.95105654}
+    mass: 1
+    damping: 0
+  - position: {x: -0.80901706, y: 0.5877852}
+    mass: 1
+    damping: 0
+  - position: {x: -0.80901706, y: -0.5877851}
+    mass: 1
+    damping: 0
+  - position: {x: 0.30901712, y: -0.9510565}
+    mass: 1
+    damping: 0
+  - position: {x: 0, y: 0}
+    mass: 1
+    damping: 0
+  edges:
+  - aIdx: 0
+    bIdx: 4
+  - aIdx: 0
+    bIdx: 5
+  - aIdx: 1
+    bIdx: 0
+  - aIdx: 1
+    bIdx: 5
+  - aIdx: 2
+    bIdx: 1
+  - aIdx: 2
+    bIdx: 5
+  - aIdx: 3
+    bIdx: 2
+  - aIdx: 3
+    bIdx: 5
+  - aIdx: 4
+    bIdx: 3
+  - aIdx: 4
+    bIdx: 5
+  helperNodeOffset: 5
